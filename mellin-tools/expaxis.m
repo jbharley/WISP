@@ -26,9 +26,10 @@ function m = expaxis (N, M)
 % <http://www.gnu.org/licenses/>.
 % ------------------------------------------------------------------------- 
 % IF THIS CODE IS USED FOR A RESEARCH PUBLICATION, please cite:
-%   J.B. Harley, J.M.F. Moura, "Sparse Recovery of the Multimodal and 
-%   Dispersive Characteristics of Lamb Waves," Journal of the Acoustical
-%   Society of America, vol. 133, no. 5, May 2013.
+%   J.B. Harley, J.M.F. Moura, "Scale transform signal processing for 
+%   optimal ultrasonic temperature compensation," IEEE Transactions on  
+%   Ultrasonics, Ferroelectrics and Frequency Control, vol. 59, no. 10, 
+%   October 2012.
 % -------------------------------------------------------------------------
 % Last updated: July 16, 2014
 % -------------------------------------------------------------------------
