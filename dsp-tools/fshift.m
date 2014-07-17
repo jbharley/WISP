@@ -17,11 +17,9 @@ function y = fshift(x,s)
 %
 
 % -------------------------------------------------------------------------
-% Code written/modified by: Joel B. Harley
+% Code modified by: Joel B. Harley
 % Last updated: July 16, 2014
 % -------------------------------------------------------------------------
-%
-
 % This is code is a modified version of the fshift function written by: 
 % (c) 2005 Francois Bouffard, All rights reserved.
 %          fbouffar@gel.ulaval.ca
@@ -50,7 +48,7 @@ function y = fshift(x,s)
 % CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 % ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 % POSSIBILITY OF SUCH DAMAGE.
-
+%
 
 
 

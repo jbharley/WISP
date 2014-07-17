@@ -28,13 +28,24 @@ function [pxl, label] = fddmfp( k, d, fn, x, V, varargin )
 %
 
 % -------------------------------------------------------------------------
-% Code written by: Joel B. Harley
-% Last updated: July 16, 2014
+% Copyright (C) 2014  Joel B. Harley
+%
+% This program is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation; either version 2 of the License, or (at 
+% your option) any later version. You should have received a copy of the 
+% GNU General Public License along with this program. If not, see 
+% <http://www.gnu.org/licenses/>.
+% ------------------------------------------------------------------------- 
+% IF THIS CODE IS USED FOR A RESEARCH PUBLICATION, please cite:
+%   J.B. Harley, J.M.F. Moura, "Data-driven matched field processing for 
+%   Lamb wave structural health monitoring," Journal of the Acoustical 
+%   Society of America, vol. 135, no. 3, March 2014.
+%
+% I would also like to acknowledge Dr. Jochen Moll of Geothe Universitat
+% for his contributes and help in developing this "fast" implementation.
 % -------------------------------------------------------------------------
-% If this code is used for a research publication, please cite:
-% J.B. Harley, J.M.F. Moura, "Data-driven matched field processing for Lamb
-% wave structural health monitoring," Journal of the Acoustical Society of
-% America, vol. 135, no. 3, March 2014.
+% Last updated: July 16, 2014
 % -------------------------------------------------------------------------
 %
 
