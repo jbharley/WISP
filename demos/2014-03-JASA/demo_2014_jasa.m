@@ -69,7 +69,7 @@
 %
 
 addpath('../../ddmfp-tools')
-addpath('../../dsp')
+addpath('../../dsp-tools')
 
 clear;
 % ---------------------------------------------
@@ -91,7 +91,10 @@ Ny = 500;     % Number of pixels in y direction
 Beta = 1/10;  % A factor for improving the speed of FDDMFP -- smaller  
               % number makes FDDMFP faster but more approximate
 
-% MATCHED FIELD PROCESSORS PROCESSORS
+% WINDOWING INFORMATION
+vwin = 2000;  % Velcoity (in m/s) for velocity window
+              
+% MATCHED FIELD PROCESSORS
 incoherentProc = false;  % Incoherent matched field processor
 
 %%
@@ -116,12 +119,12 @@ d = diag(dist(cell2mat(metab.Rx), cell2mat(Tx.').'));  % Distance between each r
 % PRE-PROCESS SIGNALS
 xb = cell2mat(metab.x.');              % Baseline signal
 xb(1:110,:) = 0;                       % Remove cross-talk
-xb = velwindow(xb, d, 2000/metab.Fs);  % Velocity-based window
+xb = velwindow(xb, d, vwin/metab.Fs);  % Velocity-based window
 Xb = fft(xb);                          % Fourier transform
 
 xs = cell2mat(metas.x.');              % Signal with target
 xs(1:110,:) = 0;                       % Remove cross-talk
-xs = velwindow(xs, d, 2000/metab.Fs);  % Velocity-based window
+xs = velwindow(xs, d, vwin/metab.Fs);  % Velocity-based window
 Xs = fft(xs);                          % Fourier transform
 
 % GET DISPERSION CURVES

@@ -43,7 +43,7 @@ function [pxl, label] = fddmfp( k, d, fn, x, V, varargin )
 %   Society of America, vol. 135, no. 3, March 2014.
 %
 % I would also like to acknowledge Dr. Jochen Moll of Geothe Universitat
-% for his contributes and help in developing this "fast" implementation.
+% for his contributions and help in developing this "fast" implementation.
 % -------------------------------------------------------------------------
 % Last updated: July 16, 2014
 % -------------------------------------------------------------------------

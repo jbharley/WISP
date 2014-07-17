@@ -38,7 +38,7 @@ function [pxl, label] = fmfp( c, d, fn, x, s, varargin )
 % <http://www.gnu.org/licenses/>.
 % -------------------------------------------------------------------------
 % I would also like to acknowledge Dr. Jochen Moll of Geothe Universitat
-% for his contributes and help in developing this "fast" implementation.
+% for his contributions and help in developing this "fast" implementation.
 % -------------------------------------------------------------------------
 % Last updated: July 16, 2014
 % -------------------------------------------------------------------------

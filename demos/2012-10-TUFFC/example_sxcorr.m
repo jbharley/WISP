@@ -50,7 +50,7 @@ addpath('../../dsp-tools/')
 clear;
 
 % DEFINE SOME VARIABLES
-N = 1000;               % Length of timm axis
+N = 1000;               % Length of time axis
 
 dly = 200;              % Delay of Gaussian pulse
 fc = .2;                % Center frequency of Gaussian pulse
@@ -71,7 +71,6 @@ n = 1:N;
 
 % Axis for the scale-cross correlation result
 m = expdoubleaxis(N);
-
 
 % Generate gaussian pulse using builtin gauspuls equation...
 s = fshift(gaussfilt( N, fc, .025, 1, false), dly);
