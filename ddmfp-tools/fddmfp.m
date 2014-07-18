@@ -15,6 +15,9 @@ function [pxl, label] = fddmfp( k, d, fn, x, V, varargin )
 %          frequency-wavenumber representation
 %
 %   OPTIONS: 
+%             'beta': A scalar number. When beta is set, fddmfp is solved 
+%                     along beta*L different ranges. A smaller beta value
+%                     create quicker, but more approximate solution. 
 %       'incoherent': If true, DDMFP uses the incoherent matched field
 %                     processor (true by default)
 %         'coherent': If true, DDMFP uses the coherent matched field
@@ -23,6 +26,7 @@ function [pxl, label] = fddmfp( k, d, fn, x, V, varargin )
 %   OUTPUTS:
 %     PXL: An L-by-P matrix of P ambiguity sufaces, corresponding to P 
 %          processors
+%   LABEL: A P-by-1 cell of labels for each processor
 %
 %   see also: swa, sws, ddmfp, mfp, fmfp
 %
@@ -42,10 +46,11 @@ function [pxl, label] = fddmfp( k, d, fn, x, V, varargin )
 %   Lamb wave structural health monitoring," Journal of the Acoustical 
 %   Society of America, vol. 135, no. 3, March 2014.
 %
-% I would also like to acknowledge Dr. Jochen Moll of Geothe Universitat
-% for his contributions and help in developing this "fast" implementation.
+% I would also like to acknowledge Dr. Jochen Moll from Goethe University 
+% of Frankfurt am Main for his contributions and help in developing this 
+% "fast" implementation.
 % -------------------------------------------------------------------------
-% Last updated: July 16, 2014
+% Last updated: July 18, 2014
 % -------------------------------------------------------------------------
 %
 
@@ -85,7 +90,9 @@ function [pxl, label] = fddmfp( k, d, fn, x, V, varargin )
     
     % BUILD RANGE
     Lm = L*opt.beta;                % Number of ranges 
-                                    % (times beta to is arbitrarily used to improve accuracy)
+                                    %   (beta may need to be adjusted for 
+                                    %   accuracy) 
+                                    % improve accuracy)
     Dm = max(max(d));               % Maximum distance
     r = linspace(Dm/Lm, Dm, Lm).';  % Ranges 
     

@@ -1,7 +1,7 @@
 % -------------------------------------------------------------------------
-% demo_2014_jasa.m
+% demo_2014_jasa_mfp.m
 % -------------------------------------------------------------------------
-% This script demonstrates data-driven matched field processing
+% This script demonstrates matched field processing (delay-and-sum)
 % localization on experimental data. 
 %
 % Some important variables in the loaded META struct: 
@@ -11,42 +11,21 @@
 %   META.x: Reciever signal
 %
 %
-% The script uses two particular functions: SWA and FDDMFP.
-%
-% SWA performs sparse wavenumber analysis on the time data X over frequency
-% samples FN and over a wavenumbers K. Sparse wavenumber analysis
-% can be performed using one of two methods currently: basis pursuit 
-% denoising ('bp') or orthogonal matching pursuit* ('omp'). 
-%
-% * Note that I am currently preparing a JASA Express letter discussing the 
-% use of orthogonal matching pursuit (omp) for sparse wavenumber analysis  
-% and its tradeoffs with basis pursuit denoising. Paper title can be found 
-% at the end of these comments. 
+% The script uses one particular functions: FMFP.
 % 
-% FDDMFP performs a fast data-driven matched field processing approximation
-% on the time data X % over frequency samples FN with the aid of dispersion 
-% curves V obtained from SWA. 
+% FMFP performs a fast matched field processing approximation on the time 
+% data X over frequency samples FN. Note that matched field processing can
+% be seen as a generalization of 'delay-and-sum' localization as seen in
+% the stuructural health monitoring literautre. The results shown here are
+% eseentially from a delay-and-sum algorithm.
 %
 %
 % For more information on the concepts behing this code, see: 
-%   Sparse Recovery of the Multimodal and Dispersive  
-%   Characteristics of Lamb Waves
-%   J.B. Harley, J.M.F. Moura
-%   Journal of the Acoustical Society of America
-%   vol. 133, no. 5, pp. 2732-2745, May 2013
-%
 %   Data-driven Matched Field Processing for Lamb Wave 
 %   Structural Health Monitoring
 %   J.B. Harley, J.M.F. Moura
 %   Journal of the Acoustical Society of America
 %   vol. 135, no. 3, pp. 1231-1244, March 2014
-%
-% The analysis and comparison of a orthogonal matching pursuit 
-% implementation of sparse wavenumber analysis (used this code) and its 
-% a basis pursuit denoising implementation (used in above papers) will 
-% soon be submitted in: 
-%   Fast Dispersion Curve Recovery with Orthogonal Matching Pursuit
-%   J.B. Harley, J.M.F. Moura
 %
 
 % -------------------------------------------------------------------------
@@ -83,29 +62,31 @@ fl = 3;  % 1: one 0.5cm hole
          % 3: two 0.75cm holes
 
 % SWA INFORMATION
-fn = 20:20:800;     % Frequencies 
-k  = (2:2:1000).';  % Wavenumbers for dispersion curves
+fn = 1:3:120;  % Frequencies 
 
 % LOCALIZATION INFORMATION
 W  = 0.75;    % Window size around defect
-Nx = 400;     % Number of pixels in x direction
-Ny = 400;     % Number of pixels in y direction
-Beta = 1/6;   % A factor for improving the speed of FDDMFP -- smaller  
+Nx = 100;     % Number of pixels in x direction
+Ny = 100;     % Number of pixels in y direction
+Beta = 1/5;   % A factor for improving the speed of FDDMFP -- smaller  
               % number makes FDDMFP faster but more approximate
 
 % WINDOWING INFORMATION
 vwin = 2000;  % Velcoity (in m/s) for velocity window
-              
-% MATCHED FIELD PROCESSORS
-incoherentProc = false;  % Incoherent matched field processor
+
+% FILTERING INFORMATION
+FC = 300e3;         % Filter center frequency (Hz)
+BW = 120e3;         % Filter bandwidth (Hz)
+c  = 5.11083e+003;  % Approximate group velocity for 300 kHz
+
 
 %%
 % ---------------------------------------------
 % GET DATA
 % ---------------------------------------------
 load('data_20121029_localize_baseline.mat'); metab = meta; cfgb = cfg;
-if fl == 1, load('data_20121029_localize_hole_05cmC.mat');    metas = meta; cfgs = cfg; end
-if fl == 2, load('data_20121029_localize_hole_075cmC.mat');   metas = meta; cfgs = cfg; end
+if fl == 1, load('data_20121029_localize_hole_05cmC.mat'); metas = meta; cfgs = cfg; end
+if fl == 2, load('data_20121029_localize_hole_075cmC.mat'); metas = meta; cfgs = cfg; end
 if fl == 3, load('data_20121029_localize_2holes_075cmC.mat'); metas = meta; cfgs = cfg; end
 
 %%
@@ -118,21 +99,25 @@ Sx = metas.Sx;  % Hole location
 Tx = arrayfun(@(ii) (metab.Tx{ii}.'*ones(1,size(metab.Rx{ii},1))).', 1:numel(metab.Rx), 'UniformOutput', false);  % Transmitter locations
 d = diag(dist(cell2mat(metab.Rx), cell2mat(Tx.').'));  % Distance between each reciever and transmitter
 
+% DEFINE NARROW-BAND FILTER 
+Q  = size(cell2mat(metab.x.'),1);
+sf = gaussfilt( Q, FC, BW, metas.Fs, true );
+
 % PRE-PROCESS SIGNALS
 xb = cell2mat(metab.x.');              % Baseline signal
 xb(1:110,:) = 0;                       % Remove cross-talk
+xb = ifft(bsxfun(@times, fft(sf), fft(xb) ));  % Filter data
 xb = velwindow(xb, d, vwin/metab.Fs);  % Velocity-based window
 Xb = fft(xb);                          % Fourier transform
 
 xs = cell2mat(metas.x.');              % Signal with target
 xs(1:110,:) = 0;                       % Remove cross-talk
+xs = ifft(bsxfun(@times, fft(sf), fft(xs) ));  % Filter data
 xs = velwindow(xs, d, vwin/metab.Fs);  % Velocity-based window
 Xs = fft(xs);                          % Fourier transform
 
-% GET DISPERSION CURVES
-V = sparse(numel(k), size(Xb,1));
-V(:,fn) = swa( k, d, Xb(fn,:), 2, 'method', 'omp' );
-
+s  = meta.s;                           % Excitation signal
+s  = ifft(bsxfun(@times, fft(sf), fft(s, Q) ));  % Filter excitation
 
 %%
 % ---------------------------------------------
@@ -143,7 +128,7 @@ V(:,fn) = swa( k, d, Xb(fn,:), 2, 'method', 'omp' );
 [ dxy, lx, ly ] = get_grid( metas, cfgs, W, [Nx Ny] );
 
 % PERFORM LOCALIZATION
-pxl1 = fddmfp( k, dxy, fn, xb-xs, V, 'beta', Beta, 'incoherent', incoherentProc );  % Data-driven matched field processing
+pxl1 = fmfp( c/metas.Fs, dxy, fn, xb-xs, s, 'beta', Beta, 'model', 'envelope-delay');  % Data-driven matched field processing
 pxl1 = pxl1 - min(pxl1); % Normalize -- make minimum value zero
 pxl1 = pxl1 / max(pxl1); % Normalize -- make maximum value one
 pxl10 = reshape(pxl1(:,1), Nx, Ny);  % Shape into grid
@@ -162,17 +147,6 @@ xlabel('Time')
 ylabel('Voltage')
 title('Windowed baseline data')
 
-% PLOT RECOVERED DISPERSION CURVES
-figure(2)
-f = linspace(0, Fs, N);
-imagesc(f(fn)/1000, k, 10*log10(abs(V(:,fn))/max(max(abs(V(:,fn))))), [-25 0])
-axis xy;
-ylabel('Wavenumber')
-xlabel('Frequency [kHz]')
-a = colorbar;
-xlabel(a, '[dB]')
-title('Recovered dispersion curve (at select frequencies)')
-
 % PLOT LOCALIZATION RESULT
 Rx0 = unique(cell2mat(metas.Rx),'rows');
 S0 = size(metas.Sx,1);  % Number of scatterers
@@ -188,15 +162,15 @@ axis([0 1.22 0 1.22]); axis xy; axis square;
 xlabel('Plate width [m]'); ylabel('Plate length [m]');
 legend('Hole Center', 'Sensors', 'Location', 'SouthOutside'); legend BOXOFF;
 hold off;
-title('Data-driven matched field processing')
+title('Delay-and-sum localization')
 
 for s = 1:S0
     subplot(1,1+S0,1+s)
     imagesc(lx, ly, pxl10)
     hold on;
-    plot(Sx(:,1), Sx(:,2), 'kx', 'linewidth', 2, 'markersize', 10)
+    plot(Sx(:,1) , Sx(:,2) , 'kx', 'linewidth', 2, 'markersize', 10)
     plot(Rx0(:,1), Rx0(:,2), 'ks', 'linewidth', 2, 'markersize', 10)
-    plot(Sx(:,1), Sx(:,2), 'wx', 'linewidth', 1, 'markersize', 10)
+    plot(Sx(:,1) , Sx(:,2) , 'wx', 'linewidth', 1, 'markersize', 10)
     plot(Rx0(:,1), Rx0(:,2), 'ws', 'linewidth', 1, 'markersize', 10)
     axis([metas.Sx(s,1)-0.03 metas.Sx(s,1)+0.03 metas.Sx(s,2)-0.03 metas.Sx(s,2)+0.03]); axis xy; axis square;
     xlabel('Plate width [m]'); ylabel('Plate length [m]');

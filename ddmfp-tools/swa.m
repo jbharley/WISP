@@ -17,6 +17,8 @@ function [V, Phi] = swa( k, d, X, tau, varargin )
 %                     orthogonal matching pursuit. Default is 'bp'.
 %        'optMatrix': If true, solve the basis pursuit for all frequencies 
 %                     at once. Default is false.
+%           'debias': If true, uses a least-squares estimator to debias
+%                     basis pursuit denoising results. Default is true. 
 %             'plot': If true and optMatrix is false, plots results after 
 %                     each frequency. Default is false. 
 %
@@ -47,7 +49,7 @@ function [V, Phi] = swa( k, d, X, tau, varargin )
 %   Dispersive Characteristics of Lamb Waves," Journal of the Acoustical
 %   Society of America, vol. 133, no. 5, May 2013.
 % -------------------------------------------------------------------------
-% Last updated: July 16, 2014
+% Last updated: July 18, 2014
 % -------------------------------------------------------------------------
 %
     
@@ -65,6 +67,7 @@ function [V, Phi] = swa( k, d, X, tau, varargin )
     opt.optMatrix     = false;              % Use fully matrix optimization (memory intensive) 
     opt.plot          = false;              % Plot results as they run (doesn't work if optMatrix = true)
     opt.method        = 'bp';               % Optimization method
+    opt.debias        = true;               % De-bias basis pursuit denoising results
     
     % PARSE ARGUMENTS AND SIMPLIFY SOME ARGUMENT NAMES
     if ~isempty(varargin), opt = parseArgs(opt, varargin{:}); end
@@ -78,36 +81,48 @@ function [V, Phi] = swa( k, d, X, tau, varargin )
     N = length(k);   % Number of wavenumbers
     
     % NORMALIZE INPUT DATA
-    EX = sqrt(sum(abs(X).^2,2));    % Data normalization factors (at each frequency)
-    Xn = bsxfun(@times, X, 1./EX);  % Normalized data
+    rho_x = 1./sqrt(sum(abs(X).^2,2));  % Data normalization factors (at each frequency)
+    Xn    = bsxfun(@times, X, rho_x);   % Normalized data
     
-    % BUILD PROPOGATION MATRICES
+    % BUILD PROPOGATION MATRIX
     A = exp(-1j*d*k.');                 % Wave propagation frame
     Dr = spdiags(1./sqrt(d), 0, M, M);  % Distance attenuation
     Dk = spdiags(1./sqrt(k), 0, N, N);  % Wavenumber attenutation
-    rho = 1./norm(Dr,'fro');            % Normalization: 1./sqrt(sum(1./d))
-    Phi = rho*Dr*A;                     % Progagation frame 
+    rho_phi = 1./norm(Dr,'fro');        % Normalization: 1./sqrt(sum(1./d))
+    Phi     = Dr*A;                     % Progagation frame 
                                         %   Note that Phi does not contain 
                                         %   Dk due to column normalization
     
     % COMPUTE SPARSE WAVENUMBER SOLUTION
     switch opt.method
+        
         case 'bp'
-            if   opt.optMatrix, DkV = bp(Phi, Xn.', tau);  
-            else DkV = cell2mat(arrayfun(@(ii) countLoop(@bp, ii, Q, opt.plot*k, Phi, permute(Xn(ii,:,:), [2 1 3]), tau), 1:Q, 'UniformOutput', false )); end
+            if   opt.optMatrix, DkV = bp(rho_phi*Phi, Xn.', tau);  
+            else DkV = cell2mat(arrayfun(@(ii) countLoop(@bp, ii, Q, opt.plot*k, rho_phi*Phi, permute(Xn(ii,:,:), [2 1 3]), tau), 1:Q, 'UniformOutput', false )); end
+            
+            % REMOVE FREQUENCY-DEPENDENT NORMALIZATION
+            DkV = bsxfun(@times, DkV, 1./rho_x.');
             
             % DE-BIAS BASIS PURSUIT DENOISING RESULTS
-            Y   = (Phi*DkV).';  % Generate denoised signal
-            mu  = cell2mat(arrayfun(@(ii) X(ii,:)*Y(ii,:)' ./ norm(Y(ii,:))^2, 1:Q, 'UniformOutput', false ));
-            DkV = bsxfun(@times, mu, DkV);  % Frequency-wavenumber representation
+            if opt.debias
+                Y   = (rho_phi*Phi*DkV).';  % Generate denoised signal
+                mu  = cell2mat(arrayfun(@(ii) X(ii,:)*Y(ii,:)' ./ norm(Y(ii,:))^2, 1:Q, 'UniformOutput', false ));
+                DkV = bsxfun(@times, mu, DkV);  % Frequency-wavenumber representation
+            end
+            
+            % REMOVE NON-FREQUENCY-DEPENDENT NORMALIZATION
+            V = Dk\DkV*rho_phi;  
             
         case 'omp'
             if   opt.optMatrix, DkV = omp(Phi, X.', tau);  
             else DkV = cell2mat(arrayfun(@(ii) countLoop(@omp, ii, Q, opt.plot*k, Phi, permute(X(ii,:,:), [2 1 3]), tau), 1:Q, 'UniformOutput', false )); end
+            
+            % REMOVE NON-FREQUENCY-DEPENDENT NORMALIZATION
+            V = Dk\DkV; 
+            
     end
     
-    % REMOVE NORMALIZATION WEIGHTING
-    V = Dk\DkV*rho;  
+    
     
     
 end

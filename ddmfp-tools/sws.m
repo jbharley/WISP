@@ -46,7 +46,7 @@ function X = sws( k, d, V )
     N = size(k, 1);  % Number of wavenumbers
     
     % COMPUTE PROPOGATION FRAME
-    A = exp(-1j*d*k.');                 % Complex exponentials
+    A  = exp(-1j*d*k.');                % Complex exponentials
     Dr = spdiags(1./sqrt(d), 0, M, M);  % Distance attenuation
     Dk = spdiags(1./sqrt(k), 0, N, N);  % Wavenumber attenutation 
     Phi = Dr*A*Dk;                      % Progagation frame 

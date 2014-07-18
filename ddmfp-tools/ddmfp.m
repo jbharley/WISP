@@ -23,6 +23,7 @@ function [pxl, label] = ddmfp( k, d, fn, x, V )
 %   OUTPUTS:
 %     PXL: An L-by-P matrix of P ambiguity sufaces, corresponding to P 
 %          processors
+%   LABEL: A P-by-1 cell of labels for each processor
 %
 %   see also: swa, sws, fddmfp, mfp, fmfp
 %
@@ -42,7 +43,7 @@ function [pxl, label] = ddmfp( k, d, fn, x, V )
 %   Lamb wave structural health monitoring," Journal of the Acoustical 
 %   Society of America, vol. 135, no. 3, March 2014.
 % -------------------------------------------------------------------------
-% Last updated: July 16, 2014
+% Last updated: July 18, 2014
 % -------------------------------------------------------------------------
 %
 
@@ -97,13 +98,15 @@ function [pxl, label] = ddmfp( k, d, fn, x, V )
         nm = 1./sqrt(sum(abs(Y).^2)); nm(isinf(nm)) = 0;
         Yn = bsxfun(@times, Y, nm);  % Normalized signal
         
+        % -----------------------------------------------------------------
         % DEFINE LOCALIZATION PROCESSORS
+        % -----------------------------------------------------------------
         p = 1;
-        if opt.incoherent, pxl(n,p) = real(sum(diag(abs(Yn'*X).^2))); label{p} = 'Incoherent'; p=p+1; end  % Incoherent Matched Field Processor
+        if opt.incoherent, pxl(n,p) = sum(diag(abs(Yn'*X).^2)); label{p} = 'Incoherent'; p=p+1; end  % Incoherent Matched Field Processor
         if opt.coherent,   pxl(n,p) = abs(trace(Y'*X)).^2./(norm(Y, 'fro')).^2; label{p} = 'Coherent'; p=p+1; end  % Coherent Matched Field Processor
         
         % REFRESH TIME INFORMATION
-        tm = (toc(ts) + tm)/2;
+        tm = (toc(ts) + tm)/min([m 2]);
     end
     fprintf(repmat('\b', 1, 41));
 

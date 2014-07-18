@@ -1,11 +1,8 @@
-function pxl = mfp( c, d, fn, x, s, varargin )
+function [pxl, label] = mfp( c, d, fn, x, s, varargin )
 % MFP  Matched field processing (delay-and-sum localization)
-%   PXL = MFP( C, D, FN, X ) perform delay-sum matched field localization
-%   with velocity C, grid distance D, frequencies FN, data X, and
-%   exicitation S
-%
-%   PXL = MFP( C, D, FN, X, 'envelope-delay' ) perform delay-sum matched 
-%   field localization with enveloped signals
+%   PXL = MFP( C, D, FN, X, S, OPTIONS ) perform delay-sum matched field 
+%   localization with velocity C, grid distance D, frequencies FN, data X, 
+%   and exicitation S
 %
 %   INPUTS: 
 %       C: Group velocity of signal of interest (should be normalized by 
@@ -17,8 +14,14 @@ function pxl = mfp( c, d, fn, x, s, varargin )
 %          cooresponding to M measurements
 %       S: A Q-by-1 vector of the time-domain excitation signal
 %
+%   OPTIONS: 
+%            'model': Type of delay-and-sum model. May be 'delay' or
+%                     'envelope-delay' ('delay' by default)
+%
 %   OUTPUTS:
-%     PXL: An L-by-1 vector corresponding to an ambiguity suface
+%     PXL: An L-by-P matrix of P ambiguity sufaces, corresponding to P 
+%          processors
+%   LABEL: A P-by-1 cell of labels for each processor
 %
 %   see also: fmfp, ddmfp, fddmfp
 %
@@ -33,7 +36,7 @@ function pxl = mfp( c, d, fn, x, s, varargin )
 % GNU General Public License along with this program. If not, see 
 % <http://www.gnu.org/licenses/>.
 % -------------------------------------------------------------------------
-% Last updated: July 16, 2014
+% Last updated: July 18, 2014
 % -------------------------------------------------------------------------
 %
 
@@ -51,6 +54,7 @@ function pxl = mfp( c, d, fn, x, s, varargin )
     
     % SET DEFUALT OPTIONAL ARGUMENTS
     opt.model = 'delay';
+    opt.coherent = true;
     
     % PARSE ARGUMENTS 
     if ~isempty(varargin), opt = parseArgs(opt, varargin{:}); end 
@@ -78,7 +82,7 @@ function pxl = mfp( c, d, fn, x, s, varargin )
     % --------------------------------------------------------------------    
     
     % INITIALIZE VARIABLES
-    L  = size(d,2);    % Number of grid points
+    L   = size(d,2);   % Number of grid points
     pxl = zeros(L,1);  % Pixel vector
     tm  = 0;           % Initialize time
     
@@ -95,11 +99,14 @@ function pxl = mfp( c, d, fn, x, s, varargin )
             Ye = fft(abs(hilbert(real(ifft(Y0.'))))).'; Y = Ye(:,fn); 
         end
 
+        % -----------------------------------------------------------------
         % DEFINE LOCALIZATION PROCESSORS
-        pxl(n,1) = real(trace(Y'*X))./(norm(Y, 'fro'));                                % "Coherent" Matched Field Processor
+        % -----------------------------------------------------------------
+        p = 1;        
+        if opt.coherent, pxl(n,p) = abs(trace(Y'*X)).^2./(norm(Y, 'fro')).^2; label{p} = 'Coherent'; p=p+1; end  % Coherent Matched Field Processor
 
         % REFRESH TIME INFORMATION
-        tm = (toc(ts) + tm)/2;
+        tm = (toc(ts) + tm)/min([m 2]);
     end
 
 
@@ -120,7 +127,7 @@ function options = parseArgs(options, varargin)
     % COUNT ARGUMENTS
     nArgs = length(varargin);
     if round(nArgs/2)~=nArgs/2
-       error('SWA needs propertyName/propertyValue pairs')
+       error('MFP needs propertyName/propertyValue pairs')
     end
     
     % PARSE ARGUMENTS

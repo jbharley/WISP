@@ -1,11 +1,11 @@
 function [pxl, label] = fmfp( c, d, fn, x, s, varargin )
 % FMFP  Fast matched field processing (delay-and-sum localization)
-%   PXL = FMFP( C, D, FN, X ) perform delay-sum matched field localization
-%   with velocity C, grid distances D, frequencies FN, data X, and
-%   exicitation S
+%   PXL = FMFP( C, D, FN, X, S, OPTIONS ) perform delay-sum matched field 
+%   localization with velocity C, grid distances D, frequencies FN, data X, 
+%   and exicitation S
 %
-%   PXL = FMFP( C, D, FN, X, 'envelope-delay' ) perform delay-sum matched 
-%   field localization with enveloped signals
+%   PXL = FMFP( C, D, FN, X, 'model', 'envelope-delay' ) perform delay-sum  
+%   matched field localization with enveloped signals
 %
 %   INPUTS: 
 %       C: Group velocity of signal of interest (should be normalized by 
@@ -17,8 +17,17 @@ function [pxl, label] = fmfp( c, d, fn, x, s, varargin )
 %          cooresponding to M measurements
 %       S: A Q-by-1 vector of the time-domain excitation signal
 %
+%   OPTIONS: 
+%             'beta': A scalar number. When beta is set, fmfp is solved 
+%                     along beta*L different ranges. A smaller beta value
+%                     create quicker, but more approximate solution. 
+%            'model': Type of delay-and-sum model. May be 'delay' or
+%                     'envelope-delay' ('delay' by default)
+%
 %   OUTPUTS:
-%     PXL: An L-by-1 vector corresponding to an ambiguity suface
+%     PXL: An L-by-P matrix of P ambiguity sufaces, corresponding to P 
+%          processors
+%   LABEL: A P-by-1 cell of labels for each processor
 %
 %   WARNING: 
 %     This "fast" version of MFP may be memory intensive for a large number
@@ -37,10 +46,11 @@ function [pxl, label] = fmfp( c, d, fn, x, s, varargin )
 % GNU General Public License along with this program. If not, see 
 % <http://www.gnu.org/licenses/>.
 % -------------------------------------------------------------------------
-% I would also like to acknowledge Dr. Jochen Moll of Geothe Universitat
-% for his contributions and help in developing this "fast" implementation.
+% I would also like to acknowledge Dr. Jochen Moll from Goethe University 
+% of Frankfurt am Main for his contributions and help in developing this 
+% "fast" implementation.
 % -------------------------------------------------------------------------
-% Last updated: July 16, 2014
+% Last updated: July 18, 2014
 % -------------------------------------------------------------------------
 %
 
@@ -57,7 +67,6 @@ function [pxl, label] = fmfp( c, d, fn, x, s, varargin )
     fn = fn(:);                             % Make a column vector
     
     % SET DEFUALT OPTIONAL ARGUMENTS
-    opt.loadingFactor = 0.1;
     opt.model = 'delay';
     opt.coherent = true;
     opt.beta = 1;
@@ -81,7 +90,9 @@ function [pxl, label] = fmfp( c, d, fn, x, s, varargin )
     
     % BUILD RANGE
     Lm = L*opt.beta;                % Number of ranges 
-                                    % (times beta to is arbitrarily used to improve accuracy)
+                                    %   (beta may need to be adjusted for 
+                                    %   accuracy) 
+                                    % improve accuracy)
     Dm = max(max(d));               % Maximum distance
     r = linspace(Dm/Lm, Dm, Lm).';  % Ranges 
     
@@ -111,12 +122,13 @@ function [pxl, label] = fmfp( c, d, fn, x, s, varargin )
     if opt.coherent
         % LOOP OVER NUMBER OF SENSOR PAIRS
         N0 = zeros(L,1); D0 = zeros(L,1);
+        fprintf('Running delay-and-sum localization... \n')
         tm = 0; fprintf(repmat(' ', 1, 41));
         for m = 1:M
            fprintf([ repmat('\b', 1, 41) '%08i / %08i [Time left: %s]'], m, M, datestr(tm/24/3600*(M-m+1), 'HH:MM:SS')); ts = tic;    
            N0 = N0 + interp1(r,Y*X(m,:)'       ,d(m,:)).';  % numerator
            D0 = D0 + interp1(r,sum(abs(Y).^2,2),d(m,:)).';  % denominator
-           tm = (toc(ts) + tm)/2;
+           tm = (toc(ts) + tm)/min([m 2]);
         end
         fprintf(repmat('\b', 1, 41));
         pxl(:,p) = abs(N0).^2 ./ D0;  % Coherent matched field processor
@@ -140,7 +152,7 @@ function options = parseArgs(options, varargin)
     % COUNT ARGUMENTS
     nArgs = length(varargin);
     if round(nArgs/2)~=nArgs/2
-       error('SWA needs propertyName/propertyValue pairs')
+       error('MFP needs propertyName/propertyValue pairs')
     end
     
     % PARSE ARGUMENTS
