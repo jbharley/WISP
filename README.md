@@ -12,12 +12,16 @@ The repository currently contains four folders:
   * **mellin-tools**: MATLAB code base for the Mellin transform, which can be used to compensate for temperature affects in guided waves. 
   * **dsp-tools**: MATLAB code base of miscellaneous functions to support the other folders.
   * **demos**:  MATALB demonstrations of the functions presented in the other folders. 
-  
+
 
 Updates
 ====
 
 This is an active repository and will be updated as research on this work progresses. If you wish to contribute, feel free to fork the repository and collaborate. Feel free to contact me with any questions. 
+
+Contact 
+====
+If you have any questions or suggestion regarding the code or this repository, please feel free to contact me at Joel.Harley@utah.edu. 
 
 Acknowledgements
 ====
