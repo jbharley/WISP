@@ -106,7 +106,7 @@ function [pxl, label] = mfp( c, d, fn, x, s, varargin )
         if opt.coherent, pxl(n,p) = abs(trace(Y'*X)).^2./(norm(Y, 'fro')).^2; label{p} = 'Coherent'; p=p+1; end  % Coherent Matched Field Processor
 
         % REFRESH TIME INFORMATION
-        tm = (toc(ts) + tm)/min([m 2]);
+        tm = (toc(ts) + tm)/min([n 2]);
     end
 
 

@@ -1,4 +1,4 @@
-function [ d, lx, ly ] = get_grid( meta, cfg, dW, N )
+function [ d, lx, ly ] = get_grid( meta, cfg, dW, N, debug )
 %GET_GRID  Build localization from experimental meta data
 %   [D LX LY] = GET_GRID( META, CFG, DW, N ) uses meta data from
 %   experiments to generate a grid of distances associated with each
@@ -14,6 +14,8 @@ function [ d, lx, ly ] = get_grid( meta, cfg, dW, N )
 %          the medium's center. 
 %       N: A scalar or 2-by-1 vector [Nx Ny] representing the number of 
 %          grid points on the x- and y-axis. 
+%   DEBUG: If true, the first grid point corresponds to the first 
+%          scatterer / source location of interest (defined in meta.Sx)
 %
 %   OUTPUTS:
 %       D: An Nx*Ny-by-M matrix of distances corresponding to each
@@ -36,9 +38,12 @@ function [ d, lx, ly ] = get_grid( meta, cfg, dW, N )
 % GNU General Public License along with this program. If not, see 
 % <http://www.gnu.org/licenses/>.
 % -------------------------------------------------------------------------
-% Last updated: July 16, 2014
+% Last updated: August 3, 2014
 % -------------------------------------------------------------------------
 %
+
+    % SET DEFAULT PARAMETERS
+    if (nargin < 5), debug = false; end
 
     % CHECK INPUTS
     if numel(N) > 2, error('numel(N) should be less than or equal to 2.'); end
@@ -59,15 +64,25 @@ function [ d, lx, ly ] = get_grid( meta, cfg, dW, N )
     % BUILD GRID
     lx  = linspace(Xmin, Xmax, N(1));  % X-axis
     ly  = linspace(Ymin, Ymax, N(2));  % Y-axis     
-    [Lx Ly] = meshgrid(lx,ly);         % Separate axes
+    [Lx, Ly] = meshgrid(lx,ly);        % Separate axes
     Gxy = [reshape(Lx, N(1)*N(2), 1) reshape(Ly, N(1)*N(2), 1)];  % Define grid
+    
+    % SET FIRST GRID POINT TO THE FIREST SCATTERER/SOURCE FOR DEBUGGING
+    if debug == true
+        if iscell(meta.Sx)
+            Sx = unique(cell2mat(meta.Sx), 'rows'); 
+        else
+            Sx = unique(meta.Sx, 'rows'); 
+        end
+        Gxy(1,:) = Sx(1,:);
+    end
     
     % DEFINE DISTANCES 
     Rx = cell2mat(meta.Rx);  % Reciever locations
-    Tx = cell2mat(arrayfun(@(ii) (meta.Tx{ii}.'*ones(1,size(meta.Rx{ii},1))).', 1:numel(meta.Rx), 'UniformOutput', false).');  % Transmitter locations
-    if isempty(Tx)
+    if isempty(cell2mat(meta.Tx))
         d = dist(Rx, Gxy.');                    % Active source
     else
+        Tx = cell2mat(arrayfun(@(ii) (meta.Tx{ii}.'*ones(1,size(meta.Rx{ii},1))).', 1:numel(meta.Rx), 'UniformOutput', false).');  % Transmitter locations
         d = dist(Rx, Gxy.') + dist(Tx, Gxy.');  % Passive source
     end
     
