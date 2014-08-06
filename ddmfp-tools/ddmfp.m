@@ -1,4 +1,4 @@
-function [pxl, label] = ddmfp( k, d, fn, x, V )
+function [pxl, label] = ddmfp( k, d, fn, x, V, varargin )
 % DDMFP  Data-driven matched field processing
 %   PXL = DDMFP( K, D FN, X, V, OPTIONS ) performs data-driven matched  
 %   field processing to localize a target
@@ -81,20 +81,13 @@ function [pxl, label] = ddmfp( k, d, fn, x, V )
     X = fft(x).';        % Fourier transform
     X = X(:,fn);         % Use selected frequencies
     
-    % CONSTRUCT CROSS-SPECTRAL DENSITY MATRIX AND ITS INVERSE
-    KK = zeros(M,M,Qn); KKi = zeros(M,M,Qn);
-    for n = 1:Qn
-        KK(:,:,n) = X(:,n)*X(:,n)' + opt.loadingFactor*eye(M);
-        KKi(:,:,n) = pinv(KK(:,:,n));
-    end
-    
     % PERFORM DATA-DRIVEN MATCHED FIELD PROCESSING AT EACH GRID POINT
     tm = 0; fprintf(repmat(' ', 1, 41));
     for n = 1:L 
         fprintf([repmat('\b', 1, 41) '%08i / %08i [Time left: %s]'], n, L, datestr(tm/24/3600*(L-n+1), 'HH:MM:SS')); ts = tic; 
         
         % PREDICT AND NORMALIZE DATA
-        Y = sws( k, d(:,n), V ).';   % Predicted signal
+        Y = sws( k, d(:,n), V(:,fn) ).';   % Predicted signal
         nm = 1./sqrt(sum(abs(Y).^2)); nm(isinf(nm)) = 0;
         Yn = bsxfun(@times, Y, nm);  % Normalized signal
         
