@@ -102,24 +102,23 @@ function [pxl, label] = fddmfp( k, d, fn, x, V, varargin )
     
     % PREDICT AND NORMALIZE DATA
     Y  = sws( k, r, V(:,fn) ).'; % Predicted signal
-    nm = 1./sqrt(sum(abs(Y).^2)); nm(isinf(nm)) = 0;
-    Yn = bsxfun(@times, Y, nm);  % Normalized signal
     
     % --------------------------------------------------------------------
     % INCOHERENT MATCHED FIELD PROCESSOR
     % --------------------------------------------------------------------
     if opt.incoherent    
         % LOOP OVER NUMBER OF SENSOR PAIRS
-        N1 = zeros(L,1); 
+        N1 = zeros(L,1);
         fprintf('Running incoherent matched field processor... \n')
         tm = 0; fprintf(repmat(' ', 1, 41));
         for n = 1:Qn
             fprintf([ repmat('\b', 1, 41) '%08i / %08i [Time left: %s]'], n, Qn, datestr(tm/24/3600*(Qn-n+1), 'HH:MM:SS')); ts = tic;    
-            N0 = zeros(L,1);
+            N0 = zeros(L,1); D0 = zeros(L,1);
             for m = 1:M
-               N0 = N0 + interp1(r, Yn(:,n)*X(m,n)', d(m,:)).';  % numerator
+               N0 = N0 + interp1(r, Y(:,n)*X(m,n)', d(m,:) ).';  % numerator
+               D0 = D0 + interp1(r, abs(Y(:,n)).^2, d(m,:) ).';  % denominator
             end
-            N1 = N1 + abs(N0).^2; 
+            N1 = N1 + abs(N0).^2 ./ D0; 
             tm = (toc(ts) + tm)/min([m 2]);
         end
         fprintf(repmat('\b', 1, 41));
